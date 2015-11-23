@@ -32,7 +32,8 @@ def confirmEvent(etype, init, elist, dlist, minlag, maxlag):
     lastdate = init + maxlag
     for i in range(0, len(dlist)):
         if (firstdate <= dlist[i] <= lastdate) and (elist[i] == 'ESRD' or elist[i] == 'Transplant' or (etype == elist[i] == 'GFR')):
-            return True
+            return dlist[i]
+    return False
 
 ##############################
 # efile - list of events
@@ -84,7 +85,7 @@ if __name__=='__main__':
     linemain=mainfile.readline().rstrip().split(delim_val, 4)
     junk=conffile.readline().rstrip()
     lineconf=conffile.readline().rstrip().split(delim_val, 4)
-    outfile.write(header+"\n")
+    outfile.write(header+delim_val+"confirmedOn"+"\n")
     count=Counter()
     dates=[]
     events=[]
@@ -116,8 +117,9 @@ if __name__=='__main__':
                     break
             while(pid == currentid):
                 #if event is confirmed, print to outfile
-                if confirmEvent(etype, int(dateoffset), events, dates, minlag, maxlag):
-                    outfile.write(delim_val.join(linemain)+"\n")
+                confDate = confirmEvent(etype, int(dateoffset), events, dates, minlag, maxlag)
+                if confDate is not False:
+                    outfile.write(delim_val.join(linemain + [str(confDate)])+"\n")
                 linemain=mainfile.readline().rstrip().split(delim_val, 4)
                 if(len(linemain) == 5):
                     (pid, date, dateoffset, etype, stuff)=linemain
