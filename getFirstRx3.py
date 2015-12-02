@@ -53,8 +53,8 @@ if __name__=='__main__':
     parser.add_argument("rxfile", help='prescription file with format ID,DATE,OFFSET,ETC')
     parser.add_argument("outputfile")
     parser.add_argument("drugname", help='name of created flag')
-    parser.add_argument("-o", "--open", help="opening window for dates", defaults=0)
-    parser.add_argument("-c", "--close", help="closing window for dates", defaults=float('inf'))
+    parser.add_argument("-o", "--open", help="opening window for dates", default=0)
+    parser.add_argument("-c", "--close", help="closing window for dates", default=float('inf'))
     parser.add_argument("-d", "--delimiter", help='file delimiter, defaults to ","', default=',')
     args = parser.parse_args()
     mfile = args.datafile
