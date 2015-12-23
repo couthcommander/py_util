@@ -26,7 +26,7 @@ def mysort(a,b):
     return cmp(a[0],b[0])
 
 def calcDSIH(dat, stockpile, vfun, fh, delim, skip=False):
-    if len(dat) < 1:
+    if len(dat) <= 1:
         return(None, [])
     curid = dat[0]
     dat = [vfun(dat)]
@@ -122,12 +122,12 @@ if __name__=='__main__':
     linemain = infile.readline().rstrip().split(delim_val, 4)
     rx = rxfile.readline().rstrip().split(delim_val)
     while len(linemain) == 5:
-        if linemain[0] > rx[0]:
-            (res, rx) = calcDSIH(rx, dsih_percent, vals, rxfile, delim_val, skip=True)
-        elif linemain[0] < rx[0]:
+        if linemain[0] < rx[0] or rx[0] == '':
             outfile.write(missingRow(delim_val.join(linemain)))
             linemain = infile.readline().rstrip().split(delim_val, 4)
             cnt.add()
+        elif linemain[0] > rx[0]:
+            (res, rx) = calcDSIH(rx, dsih_percent, vals, rxfile, delim_val, skip=True)
         else:
             matched_id = rx[0]
             (res, rx) = calcDSIH(rx, dsih_percent, vals, rxfile, delim_val)
