@@ -56,7 +56,8 @@ def calcDSIH(dat, stockpile, vfun, fh, delim, skip=False):
              dupday.append(i)
     # remove duplicates
     if len(dupday):
-        for i in dupday.reverse():
+        dupday.reverse()
+        for i in dupday:
             del res[i]
     return(res, line)
 
@@ -122,18 +123,18 @@ if __name__=='__main__':
     linemain = infile.readline().rstrip().split(delim_val, 4)
     rx = rxfile.readline().rstrip().split(delim_val)
     while len(linemain) == 5:
-        if linemain[0] < rx[0] or rx[0] == '':
+        if rx[0] == '' or int(linemain[0]) < int(rx[0]):
             outfile.write(missingRow(delim_val.join(linemain)))
             linemain = infile.readline().rstrip().split(delim_val, 4)
             cnt.add()
-        elif linemain[0] > rx[0]:
+        elif int(linemain[0]) > int(rx[0]):
             (res, rx) = calcDSIH(rx, dsih_percent, vals, rxfile, delim_val, skip=True)
         else:
-            matched_id = rx[0]
+            matched_id = int(rx[0])
             (res, rx) = calcDSIH(rx, dsih_percent, vals, rxfile, delim_val)
             if res is not None:
                 dates = [res[i][0] for i in range(len(res))]
-            while linemain[0] == matched_id:
+            while int(linemain[0]) == matched_id:
                 # ensure date is in both files
                 mdate = int(linemain[2])
                 if res is not None and mdate in dates:
