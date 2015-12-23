@@ -39,6 +39,7 @@ def calcDSIH(dat, stockpile, vfun, fh, delim, skip=False):
     dat.sort(mysort)
     res = [[dat[i][0],0,0] for i in range(len(dat))]
     res[0][2] = dat[0][1]
+    dupday = []
     for i in range(1, len(dat)):
         res[i][2] = dat[i][1]
         dayspassed = dat[i][0] - dat[i-1][0]
@@ -48,13 +49,23 @@ def calcDSIH(dat, stockpile, vfun, fh, delim, skip=False):
             if pre > 0:
                 res[i][2] += int(round(pre * stockpile/100.0))
             res[i][1] = pre
+        elif dayspassed == 0:
+             post = max(res[i-1][2], res[i][2])
+             res[i-1][2] = post
+             res[i][2] = post
+             dupday.append(i)
+    # remove duplicates
+    if len(dupday):
+        for i in dupday.reverse():
+            del res[i]
     return(res, line)
 
 # measure compliance
-def calcDropout(start, dat, gap):
-    lastdate = 0
-    for i in range(len(dat)):
-        if dat[i][0] <= start or dat[i][1] + gap >= 0:
+def calcDropout(start, dat, ix, gap):
+    # dat[ix][0] == start
+    lastdate = ix
+    for i in range(ix+1, len(dat)):
+        if dat[i][1] + gap >= 0:
             lastdate = i
         else:
             break
@@ -69,6 +80,7 @@ if __name__=='__main__':
     parser.add_argument("flagname", help='drugname for created column')
     parser.add_argument("-d", "--dsih", help='stockpiling percentage, 0-100%%', default=100, type=int)
     parser.add_argument("-g", "--gap", help='gap size, defaults to 14', default=14, type=int)
+    parser.add_argument("-m", "--missingds", help='value for missing day supply, defaults to 90', default=90, type=int)
     parser.add_argument("--delimiter", help='file delimiter, defaults to ","', default=',')
     parser.add_argument("--count", help='turn counter on', action='store_true')
     args = parser.parse_args()
@@ -102,7 +114,7 @@ if __name__=='__main__':
         cnt = Nothing()
     def vals(x):
         if x[dcol] == '':
-            x[dcol] = 90
+            x[dcol] = args.missingds
         return [int(x[i]) for i in [2,dcol]]
     def missingRow(line):
         return line + delim_val + missing_val + delim_val + missing_val + "\n"
@@ -119,9 +131,13 @@ if __name__=='__main__':
         else:
             matched_id = rx[0]
             (res, rx) = calcDSIH(rx, dsih_percent, vals, rxfile, delim_val)
+            if res is not None:
+                dates = [res[i][0] for i in range(len(res))]
             while linemain[0] == matched_id:
-                if res is not None:
-                    (dropdate, droppre, dropsupply) = calcDropout(int(linemain[2]), res, adherence_gap)
+                # ensure date is in both files
+                mdate = int(linemain[2])
+                if res is not None and mdate in dates:
+                    (dropdate, droppre, dropsupply) = calcDropout(mdate, res, dates.index(mdate), adherence_gap)
                     out = "%s%s%s" % (dropdate, delim_val, dropsupply)
                     outfile.write(delim_val.join(linemain) + delim_val + out + "\n")
                 else:
