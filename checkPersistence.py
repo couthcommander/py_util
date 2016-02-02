@@ -63,13 +63,16 @@ def calcDSIH(dat, stockpile, vfun, fh, delim, skip=False):
 
 # measure compliance
 def calcDropout(start, dat, ix, gap):
-    # dat[ix][0] == start
+    while dat[ix][0] < start and ix < len(dat):
+        ix = ix + 1
+    # dat[ix][0] >= start
     lastdate = ix
     for i in range(ix+1, len(dat)):
         if dat[i][1] + gap >= 0:
             lastdate = i
         else:
             break
+    # does it matter if dat[lastdate][0] < start?
     return dat[lastdate]
 
 if __name__=='__main__':
@@ -82,6 +85,7 @@ if __name__=='__main__':
     parser.add_argument("-d", "--dsih", help='stockpiling percentage, 0-100%%', default=100, type=int)
     parser.add_argument("-g", "--gap", help='gap size, defaults to 14', default=14, type=int)
     parser.add_argument("-m", "--missingds", help='value for missing day supply, defaults to 90', default=90, type=int)
+    parser.add_argument("--matchdate", help='require matching dates', action='store_true')
     parser.add_argument("--delimiter", help='file delimiter, defaults to ","', default=',')
     parser.add_argument("--count", help='turn counter on', action='store_true')
     args = parser.parse_args()
@@ -92,6 +96,7 @@ if __name__=='__main__':
     drug = args.flagname
     adherence_gap = args.gap
     dsih_percent = args.dsih
+    reqDate = args.matchdate
     missing_val = ''
     ### validate arguments
     if dsih_percent < 0 or dsih_percent > 100:
@@ -135,10 +140,16 @@ if __name__=='__main__':
             if res is not None:
                 dates = [res[i][0] for i in range(len(res))]
             while int(linemain[0]) == matched_id:
-                # ensure date is in both files
                 mdate = int(linemain[2])
-                if res is not None and mdate in dates:
-                    (dropdate, droppre, dropsupply) = calcDropout(mdate, res, dates.index(mdate), adherence_gap)
+                useix = 0
+                # ensure date is in both files
+                if reqDate:
+                    if mdate in dates:
+                        useix = dates.index(mdate)
+                    else:
+                        useix = -1
+                if res is not None and useix >= 0:
+                    (dropdate, droppre, dropsupply) = calcDropout(mdate, res, useix, adherence_gap)
                     out = "%s%s%s" % (dropdate, delim_val, dropsupply)
                     outfile.write(delim_val.join(linemain) + delim_val + out + "\n")
                 else:
