@@ -36,7 +36,7 @@ def splitOutcome(string, d):
     name = junk[3].rstrip()
     return [outcomeid, outcomedate, outcomedatei, name]
 
-def buildLastEnc(lastenc, lastfield, mergefield, header, d):
+def buildLastEnc(lastenc, lastfield, mergefield, header, d, gapsize):
     alllastenc = {}
     lastfile = open(lastenc)
     # read last encounter dates into dictionary
@@ -59,7 +59,7 @@ def buildLastEnc(lastenc, lastfield, mergefield, header, d):
     lastline = lastfile.readline().rstrip()
     while len(lastline) > 1:
         row = lastline.split(d)
-        alllastenc[row[mergecol]] = row[lastcol]
+        alllastenc[row[mergecol]] = row[lastcol]+gapsize
         lastline = lastfile.readline().rstrip()
     lastfile.close()
     return [alllastenc, inmergecol]
@@ -133,6 +133,7 @@ if __name__=='__main__':
     parser.add_argument("lookback", help='maximum days to look back in the past', type=int, nargs='?', default=360)
     parser.add_argument("-l", "--lastencounterfile", help="last encounter file, to be merged with cohort file")
     parser.add_argument("-f", "--lastfield", help="field with last encounter date offset", default='LastEncdate_i180')
+    parser.add_argument("-e", "--encgap", help="encounter day gap", default=180, type=int)
     parser.add_argument("-m", "--mergefield", help="field to merge with cohort file", default='key1')
     parser.add_argument("-d", "--delimiter", help='file delimiter, defaults to ","', default=',')
     args = parser.parse_args()
@@ -160,7 +161,7 @@ if __name__=='__main__':
     junk = enfile.readline()
     header = infile.readline().rstrip().split(delim)
     if args.lastencounterfile is not None:
-        (alllastenc, inmergecol) = buildLastEnc(args.lastencounterfile, args.lastfield, args.mergefield, header, delim)
+        (alllastenc, inmergecol) = buildLastEnc(args.lastencounterfile, args.lastfield, args.mergefield, header, delim, args.encgap)
         # modify header to include LastEncounterDateOffset
         header = header[0:3] + [args.lastfield] + header[3:]
     else:
