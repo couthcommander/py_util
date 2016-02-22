@@ -42,7 +42,7 @@ def writeOut2(fh, out, dat, delim):
     for t, v, I, V, d, i in zip(dat[0], dat[1], dat[2], dat[3], dat[4], dat[5]):
         fh.write(delim.join(out+[str(t), str(v), str(I), str(V), str(i), str(d)])+"\n")
 
-def buildLastEnc(lastenc, lastfield, mergefield, header, d, gapsize):
+def buildLastEnc(lastenc, lastfield, mergefield, header, d):
     alllastenc = {}
     lastfile = open(lastenc)
     # read last encounter dates into dictionary
@@ -65,7 +65,7 @@ def buildLastEnc(lastenc, lastfield, mergefield, header, d, gapsize):
     lastline = lastfile.readline().rstrip()
     while len(lastline) > 1:
         row = lastline.split(d)
-        alllastenc[row[mergecol]] = row[lastcol]+gapsize
+        alllastenc[row[mergecol]] = row[lastcol]
         lastline = lastfile.readline().rstrip()
     lastfile.close()
     return [alllastenc, inmergecol]
@@ -180,7 +180,7 @@ if __name__=='__main__':
     junk = enfile.readline()
     header = infile.readline().rstrip().split(delim)
     if args.lastencounterfile is not None:
-        (alllastenc, inmergecol) = buildLastEnc(args.lastencounterfile, args.lastfield, args.mergefield, header, delim, args.encgap)
+        (alllastenc, inmergecol) = buildLastEnc(args.lastencounterfile, args.lastfield, args.mergefield, header, delim)
         # modify header to include LastEncounterDateOffset
         header = header[0:3] + [args.lastfield] + header[3:]
     else:
@@ -216,7 +216,7 @@ if __name__=='__main__':
         elif(cohortid < outcomeid):
             #keep reading from infile
             while(cohortid < outcomeid):
-                res = calcdata(cdateint, clastenc, [], intervalperiod, maxback, lastback, lastforward)
+                res = calcdata(cdateint, clastenc+args.encgap, [], intervalperiod, maxback, lastback, lastforward)
                 #output the current cohort, that has no matches
                 output = [str(cohortid), cdate, str(cdateint), str(clastenc)]
                 if(cohortstuff != ''):
@@ -245,7 +245,7 @@ if __name__=='__main__':
                 newdata = [data.pop()]
             while(cohortid == previd):
                 #need to compare cohortdate versus outcome dates
-                res = calcdata(cdateint, clastenc, data, intervalperiod, maxback, lastback, lastforward)
+                res = calcdata(cdateint, clastenc+args.encgap, data, intervalperiod, maxback, lastback, lastforward)
                 #output the results for the current cohort
                 output = [str(cohortid), cdate, str(cdateint), str(clastenc)]
                 if(cohortstuff != ''):
@@ -267,7 +267,7 @@ if __name__=='__main__':
             sys.exit()
     #need to print blank lines for anything left in infile
     while(len(linecohort) > 1):
-        res = calcdata(cdateint, clastenc, [], intervalperiod, maxback, lastback, lastforward)
+        res = calcdata(cdateint, clastenc+args.encgap, [], intervalperiod, maxback, lastback, lastforward)
         #output the current cohort, that has no matches
         output = [str(cohortid), cdate, str(cdateint), str(clastenc)]
         if(cohortstuff != ''):
