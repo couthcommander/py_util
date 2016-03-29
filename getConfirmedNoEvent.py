@@ -1,25 +1,24 @@
 #!/usr/bin/python
-import sys, getopt
-#lower this number if you want to test the output
-maxinput=pow(10,25)
+import sys
+import argparse
 # missing value character
 missing_val=''
-# text file delimeter (must be consistent across all input files)
-delim_val=","
-
-# python getConfirmed.py efile.csv cfile.csv ofile.csv
 
 class Counter():
     def __init__(self):
-        self.count=0
+        self.count = 0
 
     def add(self):
-        self.count+=1
-        if not self.count%1000:
-            print '\r%d' % self.count,
-            sys.stdout.flush()
-        if self.count > maxinput:
-            sys.exit()
+        self.count += 1
+        if not self.count % 10000:
+            print "\r" + str(self.count),
+
+class Nothing():
+    def __init__(self):
+        pass
+
+    def add(self):
+        pass
 
 #confirm events within lag time frame
 def confirmEvent(init, dlist, minlag, maxlag):
@@ -42,40 +41,42 @@ def confirmEvent(init, dlist, minlag, maxlag):
 ####### output of this script will be used with getFirstRx script
 ##############################
 
-def usage():
-    print "usage: " + sys.argv[0] + " [--minlag=92] [--maxlag=36500] [-h] efile cfile outputfile"
-
 if __name__=='__main__':
-    minlag=92
-    maxlag=36500
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "h", ["minlag=", "maxlag=", "help"])
-    except getopt.GetoptError:
-        usage()
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            usage()
-            sys.exit()
-        elif opt in ("--minlag"):
-            minlag=int(arg)
-            if minlag < 0:
-                print "Minimum Lag must be greater than zero"
-                usage()
-                sys.exit()
-        elif opt in ("--maxlag"):
-            maxlag=int(arg)
-            if maxlag < 0:
-                print "Maximum Lag must be greater than zero"
-                usage()
-                sys.exit()
-            if maxlag < minlag:
-                (minlag, maxlag) = maxlag, minlag
-                print "Max and Min lag were swapped"
-    if len(args) != 3:
-        usage()
-        sys.exit(1)
-    (efile, cfile, ofile)=args
+    parser = argparse.ArgumentParser()
+    intervalperiod = 30
+    parser.add_argument("efile", help='event file with format ID,DATE,OFFSET,ETC')
+    parser.add_argument("cfile", help='confirmation file with format ID,DATE,OFFSET,ETC')
+    parser.add_argument("outputfile")
+    parser.add_argument("--minlag", help="start of confirmation window", default=92, type=int)
+    parser.add_argument("--maxlag", help="end of confirmation window", default=36500, type=int)
+    parser.add_argument("-d", "--delimiter", help='file delimiter, defaults to ","', default=',')
+    parser.add_argument("--drop", help='drop records without confirmation', action='store_true')
+    parser.add_argument("--nocount", help='turn counter off', action='store_true')
+    args = parser.parse_args()
+    efile = args.efile
+    cfile = args.cfile
+    ofile = args.outputfile
+    minlag = args.minlag
+    maxlag = args.maxlag
+    delim_val = args.delimiter
+    if minlag < 0:
+        print "Minimum Lag must be greater than zero"
+        sys.exit()
+    if maxlag < 0:
+        print "Maximum Lag must be greater than zero"
+        sys.exit()
+    if maxlag < minlag:
+        (minlag, maxlag) = maxlag, minlag
+        print "Max and Min lag were swapped"
+    if args.drop:
+        prm = False
+    else:
+        prm = True
+    if args.nocount:
+        count = Nothing()
+    else:
+        count = Counter()
+
     mainfile=open(efile)
     conffile=open(cfile)
     outfile=open(ofile,'w')
@@ -84,14 +85,14 @@ if __name__=='__main__':
     junk=conffile.readline().rstrip()
     lineconf=conffile.readline().rstrip().split(delim_val, 3)
     outfile.write(header+delim_val+"confirmedOn"+delim_val+"confirmDist"+"\n")
-    count=Counter()
     dates=[]
     (pid, date, dateoffset, stuff)=linemain
     (ptvid, confdate, confdateoffset, morestuff)=lineconf
     while(len(linemain) == 4 and len(lineconf) == 4):
         if(int(pid) < int(ptvid)):
             #can't confirm event, carry on
-            outfile.write(delim_val.join(linemain + [missing_val]*2)+"\n")
+            if prm:
+                outfile.write(delim_val.join(linemain + [missing_val]*2)+"\n")
             linemain=mainfile.readline().rstrip().split(delim_val, 3)
             if(len(linemain) == 4):
                 (pid, date, dateoffset, stuff)=linemain
@@ -115,7 +116,8 @@ if __name__=='__main__':
             while(pid == currentid):
                 #if event is confirmed, print to outfile
                 confDate = confirmEvent(int(dateoffset), dates, minlag, maxlag)
-                outfile.write(delim_val.join(linemain + confDate)+"\n")
+                if prm or confDate[0] != missing_val:
+                    outfile.write(delim_val.join(linemain + confDate)+"\n")
                 linemain=mainfile.readline().rstrip().split(delim_val, 3)
                 if(len(linemain) == 4):
                     (pid, date, dateoffset, stuff)=linemain
@@ -125,7 +127,8 @@ if __name__=='__main__':
             dates=[]
     #there may be remaining lines in main file, but they can't be confirmed
     while(len(linemain) == 4):
-        outfile.write(delim_val.join(linemain + [missing_val]*2)+"\n")
+        if prm:
+            outfile.write(delim_val.join(linemain + [missing_val]*2)+"\n")
         linemain=mainfile.readline().rstrip().split(delim_val, 3)
         count.add()
     mainfile.close()
