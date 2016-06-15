@@ -179,15 +179,15 @@ if __name__=='__main__':
     if dsih_percent < 0 or dsih_percent > 100:
         print "DSIH% must be between 0 and 100"
         sys.exit()
-    header = rxfile.readline().rstrip().split(delim_val)
+    ### header for outfile
+    header = infile.readline().rstrip().split(delim_val) + ['time', drug+'_DaysMissed']
+    junk = rxfile.readline().rstrip()
     if args.lastencounterfile is not None:
         (alllastenc, inmergecol) = buildLastEnc(args.lastencounterfile, args.lastfield, args.mergefield, header, delim_val)
     else:
         alllastenc = {}
         inmergecol = None
 
-    ### header for outfile
-    header = [infile.readline().rstrip(), 'time', drug+'_DaysMissed']
     if args.interval:
         writeOut = writeOut2
         header.append(drug+'_period')
